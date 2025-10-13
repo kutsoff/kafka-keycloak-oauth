@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1.1
+    container_name: keycloak
+    hostname: keycloak
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+    ports:
+      - "8080:8080"
+    networks:
+      - kafka-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  kafka-broker:
+    image: quay.io/strimzi/kafka:0.48.0-kafka-4.1.0
+    # Using Strimzi Kafka 0.48.0 with Apache Kafka 4.1.0 and built-in OAuth support
+    container_name: kafka-broker
+    hostname: kafka-broker
+    user: root
+    command:
+      - /bin/bash
+      - -c
+      - |
+        # Set log directory to writable location
+        export LOG_DIR=/tmp/kafka-logs
+        mkdir -p $$LOG_DIR
+        # Format KRaft storage (only if not already formatted)
+        export CLUSTER_ID=$${CLUSTER_ID:-$$(bin/kafka-storage.sh random-uuid)}
+        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+          bin/kafka-storage.sh format -t $$CLUSTER_ID -c /tmp/kraft-config.properties
+        fi
+        # Start Kafka
+        bin/kafka-server-start.sh /tmp/kraft-config.properties
+    depends_on:
+      - keycloak
+    ports:
+      - "9093:9093"
+    environment:
+      # Cluster ID for KRaft
+      CLUSTER_ID: ${CLUSTER_ID:-kafka-cluster-01}
+
+      # Disable GC logging to avoid permission issues
+      KAFKA_GC_LOG_OPTS: " "
+
+      # Kafka logging
+      KAFKA_LOG4J_LOGGERS: "io.strimzi.kafka.oauth=DEBUG,org.apache.kafka.common.security.oauthbearer=DEBUG"
+
+    volumes:
+      # Mount KRaft configuration file
+      - ./kafka-config/kraft-config.properties:/tmp/kraft-config.properties:ro
+      # SSL certificates
+      - ./kafka-security/broker/kafka.server.keystore.jks:/etc/kafka/secrets/kafka.server.keystore.jks:ro
+      - ./kafka-security/broker/kafka.server.truststore.jks:/etc/kafka/secrets/kafka.server.truststore.jks:ro
+      # Persistent data
+      - kafka-broker-data:/var/lib/kafka/data
+    networks:
+      - kafka-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9093 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  kafka-broker-data:
+    driver: local
+
+networks:
+  kafka-network:
+    driver: bridge
