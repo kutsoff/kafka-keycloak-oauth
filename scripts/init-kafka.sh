@@ -13,7 +13,10 @@ cd "$(dirname "$0")/.."
 
 # Load environment variables
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    set -a  # automatically export all variables
+    source <(grep -v '^#' .env | grep -v '^$' | grep '=' | sed 's/\x1b\[[0-9;]*m//g')
+    set +a
+    echo -e "${YELLOW}Loaded environment variables from .env${NC}"
 else
     echo -e "${YELLOW}Warning: .env file not found, using defaults${NC}"
     export CLUSTER_ID="kafka-cluster-01"

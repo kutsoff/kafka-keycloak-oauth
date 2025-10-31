@@ -5,7 +5,7 @@ Test Kafka Consumer with OAuth2/OIDC Authentication via Keycloak
 
 import sys
 import json
-from kafka import KafkaConsumer
+from confluent_kafka import Consumer
 from kafka.errors import KafkaError
 
 # Configuration
@@ -15,8 +15,11 @@ GROUP_ID = 'test-consumer-group'
 
 # OAuth Client Configuration
 CLIENT_ID = 'kafka-consumer'
-CLIENT_SECRET = 'sLB9s2LSp56hqtXqz73Jpw6TYa3xjoec'
+CLIENT_SECRET = 'b3NfEwx8a477nTmqh9kJQ9SODgAlGQuc'
 TOKEN_URL = 'http://localhost:8080/realms/kafka-realm/protocol/openid-connect/token'
+import os
+CA_CERT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../kafka-security/ca/ca-cert.pem'))
+
 
 def oauth_token_provider():
     """
@@ -59,22 +62,21 @@ def create_consumer():
     print()
 
     try:
-        consumer = KafkaConsumer(
-            TOPIC,
-            bootstrap_servers=BOOTSTRAP_SERVERS,
-            security_protocol='SASL_SSL',
-            sasl_mechanism='PLAIN',  # Using PLAIN as fallback for kafka-python
-            sasl_plain_username=CLIENT_ID,
-            sasl_plain_password=CLIENT_SECRET,
-            ssl_check_hostname=False,
-            ssl_cafile='../kafka-security/broker/ca-cert',
-            group_id=GROUP_ID,
-            auto_offset_reset='earliest',
-            enable_auto_commit=True,
-            value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-            consumer_timeout_ms=10000  # Wait max 10 seconds for messages
-        )
-        return consumer
+        conf = {
+            'bootstrap.servers': 'localhost:9093',
+            'group.id': 'test-group',
+            'security.protocol': 'SASL_SSL',
+            'sasl.mechanisms': 'OAUTHBEARER',
+            'sasl.oauthbearer.method': 'oidc',
+            'sasl.oauthbearer.client.id': 'kafka-consumer',
+            'sasl.oauthbearer.client.secret': CLIENT_SECRET,
+            'sasl.oauthbearer.token.endpoint.url': 'http://localhost:8080/realms/kafka-realm/protocol/openid-connect/token',
+            'ssl.ca.location': CA_CERT_PATH,
+            'ssl.endpoint.identification.algorithm': 'none',
+            'auto.offset.reset': 'earliest',
+        }
+
+        return Consumer(conf)
     except Exception as e:
         print(f"✗ Error creating consumer: {type(e).__name__}: {e}")
         import traceback
@@ -88,19 +90,18 @@ def consume_messages(consumer, max_messages=10):
 
     message_count = 0
     try:
-        for message in consumer:
-            message_count += 1
-            print(f"\n✓ Message {message_count} received:")
-            print(f"  Topic: {message.topic}")
-            print(f"  Partition: {message.partition}")
-            print(f"  Offset: {message.offset}")
-            print(f"  Key: {message.key}")
-            print(f"  Value: {message.value}")
-            print(f"  Timestamp: {message.timestamp}")
-
-            if message_count >= max_messages:
-                print(f"\nReached maximum message count ({max_messages})")
+        consumer.subscribe([TOPIC])
+        while message_count < max_messages:
+            msg = consumer.poll(1.0)
+            if msg is None:
                 break
+
+            message_count += 1
+            message = msg.value()
+            print(f"\n✓ Message {message_count} received:")
+            print(f"  Value: {message}")
+
+        print(f"\nReached maximum message count ({max_messages})")
 
     except KeyboardInterrupt:
         print("\n\nConsumer interrupted by user")

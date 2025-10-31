@@ -9,11 +9,12 @@ conf = {
     'sasl.mechanisms': 'OAUTHBEARER',
     'sasl.oauthbearer.method': 'oidc',
     'sasl.oauthbearer.client.id': 'kafka-producer',
-    'sasl.oauthbearer.client.secret': 'rB13AjrtN06CdrANzldtwziutdDSKC4Q',
+    'sasl.oauthbearer.client.secret': 'fv4EcRCKbt1ZkIe9shTWbPANuj7DXRgj',
     'sasl.oauthbearer.token.endpoint.url': 'http://localhost:8080/realms/kafka-realm/protocol/openid-connect/token',
     'ssl.endpoint.identification.algorithm': 'none',
     'enable.ssl.certificate.verification': 'false',
     'debug': 'security,broker',
+    'ssl.ca.location': '/Users/alekseikutsov/kafka-keycloak-oauth/kafka-security/ca/ca-cert.pem'
 }
 
 print("=" * 60)

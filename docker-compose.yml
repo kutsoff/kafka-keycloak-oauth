@@ -74,6 +74,23 @@ services:
       retries: 5
       start_period: 60s
 
+  kafka-ui:
+    container_name: kafka-ui-2
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8081:8080
+    depends_on:
+      - kafka-broker
+      - keycloak
+    environment:
+      KAFKA_UI_ENABLE_DELETE_CLUSTER: 'true'
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    volumes:
+      # Монтируем дополнительный конфиг приложения (опционально) — настроите свойства в файле ниже при необходимости
+      - ./kafka-ui-application.yml:/app/application.yml
+    networks:
+      - kafka-network
+
 volumes:
   kafka-broker-data:
     driver: local

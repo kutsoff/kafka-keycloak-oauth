@@ -17,7 +17,7 @@ TOPIC = 'test-oauth-topic'
 
 # OAuth Client Configuration
 CLIENT_ID = 'kafka-producer'
-CLIENT_SECRET = 'JcR4yefw4xJ8es02jIWtdzTHVb98PFU0'
+CLIENT_SECRET = 'fv4EcRCKbt1ZkIe9shTWbPANuj7DXRgj'
 TOKEN_URL = 'http://localhost:8080/realms/kafka-realm/protocol/openid-connect/token'
 
 # Use absolute path for CA certificate
