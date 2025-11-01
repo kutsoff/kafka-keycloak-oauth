@@ -36,7 +36,7 @@ def oauth_cb(oauth_config):
                 'grant_type': 'client_credentials',
                 'client_id': CLIENT_ID,
                 'client_secret': CLIENT_SECRET,
-                'scope': 'profile email'
+                #'scope': 'profile email'
             },
             headers={'Content-Type': 'application/x-www-form-urlencoded'}
         )
@@ -56,16 +56,17 @@ def create_topic_if_not_exists():
     print(f"Checking if topic '{TOPIC}' exists...")
 
     admin_conf = {
-        'bootstrap.servers': BOOTSTRAP_SERVERS,
+        'bootstrap.servers': [BOOTSTRAP_SERVERS],
         'security.protocol': 'SASL_SSL',
         'sasl.mechanisms': 'OAUTHBEARER',
         'sasl.oauthbearer.method': 'oidc',
         'sasl.oauthbearer.client.id': CLIENT_ID,
         'sasl.oauthbearer.client.secret': CLIENT_SECRET,
         'sasl.oauthbearer.token.endpoint.url': TOKEN_URL,
-        'sasl.oauthbearer.scope': 'profile email',
+        #'sasl.oauthbearer.scope': 'profile email',
         'ssl.ca.location': CA_CERT_PATH,
         'ssl.endpoint.identification.algorithm': 'none',
+        'oauth_cb': oauth_cb
     }
 
     try:
@@ -117,7 +118,8 @@ def create_producer():
         'sasl.oauthbearer.scope': 'profile email',
         'ssl.ca.location': CA_CERT_PATH,
         'ssl.endpoint.identification.algorithm': 'none',
-        'client.id': 'python-producer-test'
+        'client.id': 'python-producer-test',
+        'oauth_cb': oauth_cb,
     }
 
     try:

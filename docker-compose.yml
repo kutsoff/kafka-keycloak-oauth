@@ -16,6 +16,8 @@ services:
       - "8080:8080"
     networks:
       - kafka-network
+    volumes:
+      - keycloak-data:/opt/keycloak
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
       interval: 10s
@@ -86,13 +88,14 @@ services:
       KAFKA_UI_ENABLE_DELETE_CLUSTER: 'true'
       DYNAMIC_CONFIG_ENABLED: 'true'
     volumes:
-      # Монтируем дополнительный конфиг приложения (опционально) — настроите свойства в файле ниже при необходимости
       - ./kafka-ui-application.yml:/app/application.yml
     networks:
       - kafka-network
 
 volumes:
   kafka-broker-data:
+    driver: local
+  keycloak-data:
     driver: local
 
 networks:

@@ -60,7 +60,7 @@ create_client() {
     local CLIENT_ID=$1
     local CLIENT_NAME=$2
 
-    echo -e "${YELLOW}Creating client: ${CLIENT_ID}...${NC}"
+    echo -e "${YELLOW}Creating client: ${CLIENT_ID}...${NC}" >&2
 
     # Create client
     curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients" \
@@ -75,14 +75,14 @@ create_client() {
             \"standardFlowEnabled\": false,
             \"directAccessGrantsEnabled\": false,
             \"publicClient\": false
-        }" || echo "Client might already exist"
+        }" || echo "Client might already exist" >&2
 
     # Get client UUID
     CLIENT_UUID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients?clientId=${CLIENT_ID}" \
         -H "Authorization: Bearer ${ADMIN_TOKEN}" | jq -r '.[0].id')
 
     if [ -z "$CLIENT_UUID" ] || [ "$CLIENT_UUID" == "null" ]; then
-        echo -e "${RED}✗ Failed to get client UUID for ${CLIENT_ID}${NC}"
+        echo -e "${RED}✗ Failed to get client UUID for ${CLIENT_ID}${NC}" >&2
         return 1
     fi
 
@@ -90,11 +90,11 @@ create_client() {
     CLIENT_SECRET=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients/${CLIENT_UUID}/client-secret" \
         -H "Authorization: Bearer ${ADMIN_TOKEN}" | jq -r '.value')
 
-    echo -e "${GREEN}✓ Client ${CLIENT_ID} created${NC}"
-    echo -e "  Secret: ${CLIENT_SECRET}"
+    echo -e "${GREEN}✓ Client ${CLIENT_ID} created${NC}" >&2
+    echo -e "  Secret: ${CLIENT_SECRET}" >&2
 
     # Add audience mapper
-    echo -e "${YELLOW}Adding audience mapper for ${CLIENT_ID}...${NC}"
+    echo -e "${YELLOW}Adding audience mapper for ${CLIENT_ID}...${NC}" >&2
 
     # Get dedicated scope ID
     SCOPE_ID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/client-scopes" \
@@ -112,9 +112,9 @@ create_client() {
                     \"included.client.audience\": \"kafka-broker\",
                     \"access.token.claim\": \"true\"
                 }
-            }" || echo "Mapper might already exist"
+            }" || echo "Mapper might already exist" >&2
 
-        echo -e "${GREEN}✓ Audience mapper added${NC}"
+        echo -e "${GREEN}✓ Audience mapper added${NC}" >&2
     fi
 
     echo "$CLIENT_SECRET"
